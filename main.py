@@ -157,11 +157,9 @@ class OthelloGame(QMainWindow):
         self.setGeometry(100, 100, 400, 440)
         
         self.current_player = "black"
-
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.grid_layout = QGridLayout(self.central_widget)
-
         self.create_board()
 
     def create_board(self, rows=8, cols=8):
@@ -194,10 +192,40 @@ class OthelloGame(QMainWindow):
     def cell_clicked(self, row, col):
         if self.is_valid_move(row, col, self.current_player):
             self.set_price(row, col, self.current_player)
+            self.flip_pieces(row, col, self.current_player)
             self.current_player = "white" if self.current_player == "black" else "black"
     
     def is_valid_move(self, row, col, player_color):
-        return True
+        if self.cells[(row, col)].styleSheet() != "background-color: gray;":
+            return False
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, 1), (-1, 1), (1, -1)]
+        valid = False
+        for dx, dy in directions:
+            if self.check_direction(row, col, dx, dy, player_color):
+                valid = True
+        return valid
+    
+    def check_direction(self, row, col, dx, dy, player_color):
+        opponent_color = "white" if player_color == "black" else "black"
+        r, c = row + dx, col + dy
+        pieces_to_flip = []
+
+        while (r,c) in self.cells and self.cells[(r,c)].styleSheet() == f"background-color: {opponent_color};":
+            pieces_to_flip.append((r,c))
+            r += dx
+            c += dy
+        
+        if (r,c) in self.cells and self.cells[(r,c)].styleSheet() == f"background-color: {player_color};":
+            return pieces_to_flip
+        
+        return []
+    
+    def flip_pieces(self, row, col, player_color):
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, 1), (-1, 1), (1, -1)]
+        for dx, dy in directions:
+            pieces_to_flip = self.check_direction(row, col, dx, dy, player_color)
+            for r,c in pieces_to_flip:
+                self.set_price(r,c, player_color)
 
 
 if __name__ == "__main__":
