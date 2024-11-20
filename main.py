@@ -1,88 +1,14 @@
 import sys
+import time
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QComboBox, QWidget, QStackedWidget, QGridLayout, QMessageBox
 from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QRect
 from PyQt5.QtGui import QColor
 
 
-
-class MiniMax:
-    """
-    print utility value of root node (assuming it is max)
-    print names of all nodes visited during search
-    """
-    def __init__(self, game_tree):
-        self.game_tree = game_tree
-        self.root = game_tree.root
-        self.currentNode = None
-        self.successors = []
-        return
-    
-    def minimax(self, node):
-        # first, find max value
-        best_val = self.max_value(node)
-
-        """
-        second, find the node which HAS that max value
-        -> means we need to propagate the values back up the tree as part of our minimax algorithm 
-        """
-        successors = self.getSuccessors(node)
-        print(f"MiniMax: Utility Value of Root Node: = {str(best_val)}")
-
-        best_move = None
-        for elem in successors:     # —> Need to propagate values up tree for this to work
-            if elem.value == best_val:
-                best_move = elem
-                break
-
-        return best_move
-    
-    def max_value(self, node):
-        print(f"MiniMax -> MAX: Visited Node :: {node.Name}")
-        if self.isTerminal(node):
-            return self.getUtility(node)
-        
-        infinity = float('inf')
-        max_value = -infinity
-        successor_state = self.getSuccessors(node)
-
-        for state in successor_state:
-            max_value = max(max_value, self.min_value(state))
-        return max_value
-    
-    def min_value(self, node):
-        print(f"MiniMax -> MIN: Visited node :: {node.name}")
-        if self.isTerminal(node):
-            return self.getUtility(node)
-        
-        infinity = float('inf')
-        min_value = infinity
-        successor_state = self.getSuccessors(node)
-        for state in successor_state:
-            min_value = min(min_value, self.max_value(state))
-        return min_value
-    
-
-    # successor states in a game tree are the child nodes…
-    def getSuccessors(self, node):
-        assert node is not None
-        return node.children
-    
-    # return true if the node has NO children (successor states)
-    # return false if the node has children (successor states)
-    def isTerminal(self, node):
-        assert node is not None
-        return len(node.children) == 0
-    
-
-    def getUtility(self, node):
-        assert node is not None
-        return node.value
-
 class AlphaBeta:
 
-    def __init__(self, game_tree):
-            self.game_tree = game_tree
-            self.root = game_tree.root
+    def __init__(self, root_node):
+            self.root = root_node
             return
     
     def alpha_beta_search(self, node):
@@ -98,11 +24,9 @@ class AlphaBeta:
                 best_val = value
                 best_state = state
         
-        print(f"AlphaBeta: Utility Value of Root Node: = {str(best_val)}")
-        print(f"AlphaBeta: Best State is: {str(best_state.Name)}")
         return best_state
+
     def max_value(self, node, alpha, beta):
-        print(f"AlphaBeta->MAX: Visited Node :: {node.Name}")
         if self.isTerminal(node):
             return self.getUtility(node)
         infinity = float('inf')
@@ -118,7 +42,6 @@ class AlphaBeta:
     
 
     def min_value(self, node, alpha, beta):
-        print(f"AlphaBeta->MIX: Visited Node :: {node.Name}")
         if self.isTerminal(node):
             return self.getUtility(node)
         infinity = float('inf')
@@ -210,12 +133,12 @@ class StartWindow(QMainWindow):
         self.close()
 
 class GameNode:
-    def __init__(self, board, current_player, move=None):
+    def __init__(self, board, current_player, move=None, value=None):
         self.board = board
         self.current_player = current_player
         self.move = move
         self.children = []
-        self.value = None
+        self.value = value
 
 
 class OthelloGame(QMainWindow):
@@ -308,20 +231,16 @@ class OthelloGame(QMainWindow):
             self.ai_move()
 
     def ai_move(self):
-        # import random
-        # legal_moves = [(r, c) for r in range(self.board_size) for c in range(self.board_size)
-        #                 if self.is_legal_move(r, c, 'white')]
-        # if legal_moves:
-        #     row, col = random.choice(legal_moves)
-        #     self.place_piece(row, col, 'white')
-        #     self.flip_pieces(row, col)
-        #     self.update_scores()
-        #     self.update_turn_display()
-            
-        #     self.current_player = 'black'
         root_node = self.create_game_tree(self.board, 'white')
         alpha_beta = AlphaBeta(root_node)
-        best_state = alpha_beta
+        best_state = alpha_beta.alpha_beta_search(root_node)
+        if best_state and best_state.move:
+            row, col = best_state.move
+            self.place_piece(row, col, 'white')
+            self.flip_pieces(row, col)
+            self.update_scores()
+            self.update_turn_display()
+            self.current_player = 'black'
 
     def has_legal_move(self, player):
         for row in range(self.board_size):
@@ -404,11 +323,18 @@ class OthelloGame(QMainWindow):
 
         return root
 
-    def evaluate_board (self):
-        pass
+    def evaluate_board (self, board, player):
+        player_score = sum(row.count(player) for row in board)
+        opponent = 'black' if player == 'white' else 'white'
+        opponent_score = sum(row.count(opponent) for row in board)
+        return player_score - opponent_score
 
-    def simulate_move (self):
-        pass
+    def simulate_move (self, board, move, player):
+        new_board = [row[:] for row in board]
+        row, col = move
+        new_board[row][col] = player
+
+        return new_board
 
     def end_game(self):
         winner = "Black" if self.black_score > self.white_score else "White" if self.white_score > self.black_score else "Tie"
