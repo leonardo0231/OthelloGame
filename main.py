@@ -3,9 +3,8 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,
 from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QRect
 from PyQt5.QtGui import QColor
 
-""""
-                                                ### MiniMax ###
-"""
+
+
 class MiniMax:
     """
     print utility value of root node (assuming it is max)
@@ -79,10 +78,6 @@ class MiniMax:
         assert node is not None
         return node.value
 
-
-""""
-                                                ### MiniMax A-B ###
-"""
 class AlphaBeta:
 
     def __init__(self, game_tree):
@@ -150,6 +145,7 @@ class AlphaBeta:
         assert node is not None
         return node.value
 
+
 class StartWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -212,6 +208,15 @@ class StartWindow(QMainWindow):
         self.othello_game = OthelloGame(board_size, self.selected_mode)
         self.othello_game.show()
         self.close()
+
+class GameNode:
+    def __init__(self, board, current_player, move=None):
+        self.board = board
+        self.current_player = current_player
+        self.move = move
+        self.children = []
+        self.value = None
+
 
 class OthelloGame(QMainWindow):
     def __init__(self, board_size, mode="Player vs Player"):
@@ -303,18 +308,20 @@ class OthelloGame(QMainWindow):
             self.ai_move()
 
     def ai_move(self):
-        import random
-        legal_moves = [(r, c) for r in range(self.board_size) for c in range(self.board_size)
-                        if self.is_legal_move(r, c, 'white')]
-        if legal_moves:
-            row, col = random.choice(legal_moves)
-            self.place_piece(row, col, 'white')
-            self.flip_pieces(row, col)
-            self.update_scores()
-            self.update_turn_display()
+        # import random
+        # legal_moves = [(r, c) for r in range(self.board_size) for c in range(self.board_size)
+        #                 if self.is_legal_move(r, c, 'white')]
+        # if legal_moves:
+        #     row, col = random.choice(legal_moves)
+        #     self.place_piece(row, col, 'white')
+        #     self.flip_pieces(row, col)
+        #     self.update_scores()
+        #     self.update_turn_display()
             
-            self.current_player = 'black'
-
+        #     self.current_player = 'black'
+        root_node = self.create_game_tree(self.board, 'white')
+        alpha_beta = AlphaBeta(root_node)
+        best_state = alpha_beta
 
     def has_legal_move(self, player):
         for row in range(self.board_size):
@@ -380,6 +387,29 @@ class OthelloGame(QMainWindow):
     def opponent(self, player):
         return 'white' if player == 'black' else 'black'
     
+    def create_game_tree(self, board, player, depth=3):
+        if depth == 0 or self.is_terminal_state(board):
+            utility = self.evaluate_board(board, player)
+            return GameNode(board, player, value=utility)
+        
+        root = GameNode(board, player)
+        legal_moves = [(r,c) for r in range(self.board_size) for c in range(self.board_size)
+                        if self.is_legal_move(r, c, player)]
+        
+        for move in legal_moves:
+            new_board = self.simulate_move(board, move, player)
+            child_node = self.create_game_tree(new_board, 'black' if player == 'white' else 'white', depth -1)
+            child_node.move = move
+            root.children.append(child_node)
+
+        return root
+
+    def evaluate_board (self):
+        pass
+
+    def simulate_move (self):
+        pass
+
     def end_game(self):
         winner = "Black" if self.black_score > self.white_score else "White" if self.white_score > self.black_score else "Tie"
         # msg = f"Game Over! Winner: {winner}" if winner != "Tie" else "Game Over! It's a tie!"
@@ -391,7 +421,11 @@ class OthelloGame(QMainWindow):
             msg.setText(f"Game over! the winner is {winner}")
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
-        
+
+    def is_terminal_state(self, board):
+        return not any(self.is_legal_move(r, c, 'white') or self.is_legal_move(r, c, 'black')
+                   for r in range(self.board_size) for c in range(self.board_size))
+    
 
 if __name__ == '__main__':
     import sys
