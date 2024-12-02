@@ -1,12 +1,10 @@
 import sys
-import time
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QComboBox, QWidget, QStackedWidget, QGridLayout, QMessageBox
-from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QRect
+from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QRect, QTimer
 from PyQt5.QtGui import QColor
 
 
 class AlphaBeta:
-
     def __init__(self, root_node):
             self.root = root_node
             return
@@ -39,7 +37,6 @@ class AlphaBeta:
                 return value
             alpha = max(alpha, value)
         return value
-    
 
     def min_value(self, node, alpha, beta):
         if self.isTerminal(node):
@@ -66,8 +63,9 @@ class AlphaBeta:
  
     def getUtility(self, node):
         assert node is not None
+        if node.value is None:
+            return 0
         return node.value
-
 
 class StartWindow(QMainWindow):
     def __init__(self):
@@ -91,8 +89,6 @@ class StartWindow(QMainWindow):
         
         pvp_button = QPushButton("Player vs Player")
         pva_button = QPushButton("Player vs AI")
-        # pvp_button.clicked.connect(self.show_board_size_selection)
-        # pva_button.clicked.connect(self.show_board_size_selection_pva)
         pvp_button.clicked.connect(lambda: self.select_mode("Player vs Player"))
         pva_button.clicked.connect(lambda: self.select_mode("Player vs AI"))
         mode_layout.addWidget(pvp_button)
@@ -139,7 +135,6 @@ class GameNode:
         self.move = move
         self.children = []
         self.value = value
-
 
 class OthelloGame(QMainWindow):
     def __init__(self, board_size, mode="Player vs Player"):
@@ -229,8 +224,13 @@ class OthelloGame(QMainWindow):
 
         if  self.mode == "Player vs AI" and self.current_player == "white":
             self.ai_move()
+        self.update_turn_display()
 
     def ai_move(self):
+        QTimer.singleShot(2000, self.perform_ai_move)
+        self.update_turn_display()
+
+    def perform_ai_move(self):
         root_node = self.create_game_tree(self.board, 'white')
         alpha_beta = AlphaBeta(root_node)
         best_state = alpha_beta.alpha_beta_search(root_node)
@@ -293,6 +293,7 @@ class OthelloGame(QMainWindow):
                 
                 r += dr
                 c += dc
+        self.update_turn_display()
 
     def update_scores(self):
         self.black_score = sum(button.property("color") == "black" for row in self.board for button in row)
@@ -352,7 +353,6 @@ class OthelloGame(QMainWindow):
         return not any(self.is_legal_move(r, c, 'white') or self.is_legal_move(r, c, 'black')
                    for r in range(self.board_size) for c in range(self.board_size))
     
-
 if __name__ == '__main__':
     import sys
     app = QApplication(sys.argv)
