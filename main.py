@@ -227,10 +227,6 @@ class OthelloGame(QMainWindow):
         self.update_turn_display()
 
     def ai_move(self):
-        QTimer.singleShot(2000, self.perform_ai_move)
-        self.update_turn_display()
-
-    def perform_ai_move(self):
         root_node = self.create_game_tree(self.board, 'white')
         alpha_beta = AlphaBeta(root_node)
         best_state = alpha_beta.alpha_beta_search(root_node)
@@ -241,6 +237,7 @@ class OthelloGame(QMainWindow):
             self.update_scores()
             self.update_turn_display()
             self.current_player = 'black'
+        self.update_turn_display()
 
     def has_legal_move(self, player):
         for row in range(self.board_size):
@@ -307,7 +304,7 @@ class OthelloGame(QMainWindow):
     def opponent(self, player):
         return 'white' if player == 'black' else 'black'
     
-    def create_game_tree(self, board, player, depth=3):
+    def create_game_tree(self, board, player, depth=9):
         if depth == 0 or self.is_terminal_state(board):
             utility = self.evaluate_board(board, player)
             return GameNode(board, player, value=utility)
